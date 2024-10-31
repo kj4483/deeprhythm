@@ -1,5 +1,5 @@
-import torch
-from deeprhythm.utils import load_and_split_audio
+import torch, librosa, numpy as np
+from deeprhythm.utils import load_and_split_audio, split_audio
 from deeprhythm.audio_proc.hcqm import make_kernels, compute_hcqm
 from deeprhythm.utils import class_to_bpm
 from deeprhythm.model.frame_cnn import DeepRhythmModel
@@ -28,8 +28,13 @@ class DeepRhythmPredictor:
         stft, band, cqt = make_kernels(device=device)
         return stft, band, cqt
 
-    def predict(self, filename, include_confidence=False):
-        clips = load_and_split_audio(filename, sr=22050)
+    def predict(self, audio_file, include_confidence=False):
+        if isinstance(audio_file, np.ndarray):
+            clips = split_audio(audio)
+        elif isinstance(audio_file, str):
+            audio, _ = librosa.load(audio_file, sr=22050)
+            clips = load_and_split_audio(audio_file)
+            
         input_batch = compute_hcqm(clips.to(device=self.device), *self.specs).permute(0,3,1,2)
         self.model.eval()
         with torch.no_grad():
