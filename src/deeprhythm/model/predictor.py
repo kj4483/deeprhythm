@@ -17,7 +17,7 @@ class DeepRhythmPredictor:
 
     def load_model(self):
         model = DeepRhythmModel()
-        model.load_state_dict(torch.load(self.model_path, map_location=self.device))
+        model.load_state_dict(torch.load(self.model_path, map_location=self.device, weights_only=True))
         model = model.to(device=self.device)
         model.eval()
         return model
@@ -28,12 +28,11 @@ class DeepRhythmPredictor:
         stft, band, cqt = make_kernels(device=device)
         return stft, band, cqt
 
-    def predict(self, audio_file, include_confidence=False):
+    def predict(self, audio_file, include_confidence=False, sr=22050, clip_length=8):
         if isinstance(audio_file, np.ndarray):
-            clips = split_audio(audio)
+            clips = split_audio(audio_file, sr=sr, clip_length=clip_length)
         elif isinstance(audio_file, str):
-            audio, _ = librosa.load(audio_file, sr=22050)
-            clips = load_and_split_audio(audio_file)
+            clips = load_and_split_audio(audio_file, sr=sr, clip_length=clip_length)
             
         input_batch = compute_hcqm(clips.to(device=self.device), *self.specs).permute(0,3,1,2)
         self.model.eval()
